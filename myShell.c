@@ -7,7 +7,7 @@ int main()
         printf("[myShell@llkser]$$ ");
         char ucmd[255];
         gets(ucmd);
-        if(exeCmd(parse(ucmd))==0)
+        if(exeCmd(parseCmd(ucmd),ucmd)==0)
             break;
     }
     
