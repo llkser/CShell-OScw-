@@ -49,25 +49,7 @@ int exeCmd(int choice, char* ucmd, char* CWdir)
         printf("XJCO2211 Simplified Shell by LLKSER.\n");
         break;
     case 2:
-        if(strlen(CWdir))
-            printf("%s\n",CWdir);
-        else{
-            char dir[PATH_MAX];
-            int flag;
-            flag=readlink("/proc/self/exe",dir,PATH_MAX);
-            if(flag<0||flag>=PATH_MAX)
-                printf("Error!\n");
-            else{
-                int i;
-                for(i=PATH_MAX-1;i>=0;i--)
-                    if(dir[i]=='/')
-                    {
-                        dir[i]='\0';
-                        break;
-                    }
-                printf("%s\n",dir);
-            }
-        }
+        printf("%s\n",CWdir);
         break;
     case 3:
         strMatcher(ucmd,CWdir);
@@ -77,8 +59,10 @@ int exeCmd(int choice, char* ucmd, char* CWdir)
         for(i=3;i<strlen(ucmd);i++)
             CWdir[i-3]=ucmd[i];
         CWdir[i-3]='\0';
+        printf("Current working direction changed!\n");
         break;
     case 5:
+        execFile(ucmd,CWdir);
         break;
     }
     return 1;
@@ -120,29 +104,18 @@ void strMatcher(char* ucmd,char* CWdir)
     }
     address[j]='\0';
     
-    if(strlen(CWdir))
+    int p,q;
+    for(p=0;p<strlen(CWdir);p++)
+        CWaddress[p]=CWdir[p];
+    CWaddress[p]='/';
+    for(q=p+1;q<p+1+strlen(address);q++)
+        CWaddress[q]=address[q-p-1];
+    CWaddress[q]='\0';
+    stream=fopen(CWaddress,"r");
+    if(stream==NULL)
     {
-        int p,q;
-        for(p=0;p<strlen(CWdir);p++)
-            CWaddress[p]=CWdir[p];
-        CWaddress[p]='/';
-        for(q=p+1;q<p+1+strlen(address);q++)
-            CWaddress[q]=address[q-p-1];
-        CWaddress[q]='\0';
-        stream=fopen(CWaddress,"r");
-        if(stream==NULL)
-        {
-            printf("File not exists!\n");
-            return;
-        }
-    }
-    else{
-        stream=fopen(address,"r");
-        if(stream==NULL)
-        {
-            printf("File not exists!\n");
-            return;
-        }
+        printf("File not exists!\n");
+        return;
     }
     
     i=0;
@@ -159,7 +132,7 @@ void strMatcher(char* ucmd,char* CWdir)
     }
     fclose(stream);
 
-    int m,q,sum;
+    int m,sum;
     q=0;
     sum=0;
     m=strlen(text);
@@ -196,4 +169,67 @@ int* paiComputor(char* pattern)
         paiFun[i]=k;
     }
     return paiFun;
+}
+
+void execFile(char* ucmd,char* CWdir)
+{
+    char progA[255];
+    char addressA[255];
+    char args[255];
+    int i,j,k,fd,refd;
+    pid_t pid;
+
+    for(i=3;i<strlen(ucmd);i++)
+    {
+        if(ucmd[i]==' ')
+            break;
+        progA[i-3]=ucmd[i];
+    }
+    progA[i-3]='\0';
+    i++;
+
+    for(k=0;k<strlen(CWdir);k++)
+        addressA[k]=CWdir[k];
+    addressA[k]='/';
+    k++;
+    for(k;k<strlen(CWdir)+strlen(progA)+1;k++)
+        addressA[k]=progA[k-strlen(CWdir)-1];
+    addressA[k]='\0';
+
+    if(ucmd[i]=='|');
+    else if(ucmd[i]=='>')
+    {
+        i+=2;
+        for(k=0;k<strlen(CWdir);k++)
+            args[k]=CWdir[k];
+        args[k]='/';
+        k++;
+        while(ucmd[i]!='\0')
+        {
+            args[k]=ucmd[i];
+            k++;
+            i++;
+        }
+        args[k]='\0';
+        pid=fork();
+        if(pid==0)
+        {
+            fd=open(args,O_WRONLY|O_CREAT,0777);
+            refd=dup2(fd,fileno(stdout));
+            if(execl(addressA,progA,NULL)==-1)
+                printf("Error!\n");
+            close(fd);
+        }
+        wait(NULL);
+    }
+    else{
+        for(j=i;j<strlen(ucmd);j++)
+            args[j-i]=ucmd[j];
+        args[j-i]='\0';
+        pid=fork();
+        if(pid==0)
+            if(execl(addressA,progA,args,NULL)==-1)
+                printf("Error!\n");
+        wait(NULL);
+    }
 }
