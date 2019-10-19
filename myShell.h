@@ -2,13 +2,15 @@
 #define MYSHELL_H
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <linux/limits.h>
-#include <cstring>
+#include <string.h>
 
-int exeCmd(int,char*);
+int exeCmd(int,char*,char*);
 int parseCmd(char*);
-int strMatcher(char*);
+void strMatcher(char*,char*);
+int* paiComputor(char*);
 
 #endif
