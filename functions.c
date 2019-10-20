@@ -20,6 +20,12 @@ int parseCmd(char* ucmd)
         else
             choice=-1;
         break;
+    case 2:
+        if(ucmd[0]=='l'&&ucmd[1]=='s')
+            choice=6;
+        else
+            choice=-1;
+        break;
     default:
         if(strlen(ucmd)>8&&ucmd[0]=='g'&&ucmd[1]=='r'&&ucmd[2]=='e'&&ucmd[3]=='p'&&ucmd[4]==' '&&ucmd[5]=='-'&&ucmd[6]=='c'&&ucmd[7]==' ')
             choice=3;
@@ -64,6 +70,13 @@ int exeCmd(int choice, char* ucmd, char* CWdir)
     case 5:
         execFile(ucmd,CWdir);
         break;
+    case 6:
+        DIR *dirp; 
+        struct dirent *dp;
+        dirp = opendir(CWdir); 
+        while ((dp = readdir(dirp)) != NULL) 
+            printf("%s\n", dp->d_name );
+        closedir(dirp);
     }
     return 1;
 }
@@ -176,6 +189,7 @@ void execFile(char* ucmd,char* CWdir)
     char progA[255];
     char addressA[255];
     char args[255];
+    char ch;
     int i,j,k,fd,refd;
     pid_t pid;
 
@@ -196,7 +210,54 @@ void execFile(char* ucmd,char* CWdir)
         addressA[k]=progA[k-strlen(CWdir)-1];
     addressA[k]='\0';
 
-    if(ucmd[i]=='|');
+    if(ucmd[i]=='|')
+    {
+        pid=fork();
+        if(pid==0)
+        {
+            fd=open("progA.out",O_WRONLY|O_CREAT,0777);
+            refd=dup2(fd,fileno(stdout));
+            if(execl(addressA,progA,NULL)==-1)
+                printf("Error!\n");
+            close(fd);
+        }
+        wait(NULL);
+
+        i+=5;
+        k=0;
+        for(i;i<strlen(ucmd);i++)
+        {
+            progA[k]=ucmd[i];
+            k++;
+        }
+        progA[k]='\0';
+        j=strlen(CWdir);
+        addressA[j]='/';
+        j++;
+        for(j;j<strlen(CWdir)+strlen(progA)+1;j++)
+            addressA[j]=progA[j-strlen(CWdir)-1];
+        addressA[j]='\0';
+
+        FILE *stream=fopen("progA.out","r");
+        i=0;
+        while(true)
+        {
+            ch=fgetc(stream);
+            if(ch==EOF)
+            {
+                args[i]='\0';
+                break;
+            }
+            args[i]=ch;
+            i++;
+        }
+
+        pid=fork();
+        if(pid==0)
+            if(execl(addressA,progA,args,NULL)==-1)
+                printf("Error!\n");
+        wait(NULL);
+    }
     else if(ucmd[i]=='>')
     {
         i+=2;

@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <dirent.h>
 #include <string.h>
 
 int exeCmd(int,char*,char*);
